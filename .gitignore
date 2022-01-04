@@ -1,5 +1,4 @@
 venv
-venv_arch
 .idea
 __pycache__
 data
