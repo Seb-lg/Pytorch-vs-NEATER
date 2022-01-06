@@ -1,5 +1,6 @@
 import torch
 import os
+import sys
 import shutil
 import logging
 from os import listdir
@@ -17,7 +18,7 @@ from Neater.Neater import train_neater
 def setDS(test_path, train_path):
     if exists(os.path.join(os.getcwd(), 'data/train')) or \
             exists(os.path.join(os.getcwd(), 'data/test')):
-        logging.info('Data already set')
+        logging.debug('Data already set')
         return
     os.mkdir('data/train')
     os.mkdir('data/test')
@@ -42,7 +43,7 @@ def setDS(test_path, train_path):
 
 
 if __name__ == '__main__':
-    logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.NOTSET)
     setDS('data/Test Images 3360x32x32/test', 'data/Train Images 13440x32x32/train')
     transform = transforms.Compose([
         transforms.ToTensor(),
@@ -56,7 +57,10 @@ if __name__ == '__main__':
     train_dataloader = create_dataloader(train_dataset)
     test_dataloader = create_dataloader(test_dataset)
 
-    # train_model_save(train_dataloader, test_dataloader, 20, 'torch_model_arab.cwd')
 
-    train_neater(train_dataloader, test_dataloader)
-    
+    if '--neater' in sys.argv[1:]:
+        logging.debug("Starting NEATER training")
+        train_neater(train_dataloader, test_dataloader)
+    else:
+        logging.debug("Starting Pytorch model training")
+        train_model_save(train_dataloader, test_dataloader, 20, 'torch_model_arab.cwd')

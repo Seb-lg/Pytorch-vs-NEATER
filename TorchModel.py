@@ -6,50 +6,40 @@ import torch.nn.functional as F
 import torch.optim as optim
 from torchvision import datasets, transforms
 from torch.optim.lr_scheduler import StepLR
+import matplotlib.pyplot as plt
+import numpy
 
 
 class Net(nn.Module):
     def __init__(self):
         super(Net, self).__init__()
-        self.conv1 = nn.Conv2d(in_channels=1, out_channels=32, kernel_size=3, stride=1)
-        self.conv2 = nn.Conv2d(32, 64, 3, 1)
-        self.conv3 = nn.Conv2d(64, 128, 3, 1)
-        self.dropout1 = nn.Dropout(0.25)
-        self.dropout2 = nn.Dropout(0.5)
-        self.fc1 = nn.Linear(21632, 2048)
-        self.fc2 = nn.Linear(2048, 1024)
-        self.fc3 = nn.Linear(1024, 512)
-        self.fc4 = nn.Linear(512, 128)
-        self.fc5 = nn.Linear(128, 28)
+        self.conv1 = nn.Conv2d(in_channels=1, out_channels=64, kernel_size=3, stride=1)
+        self.conv2 = nn.Conv2d(64, 128, 3, 1)
+        # self.dropout1 = nn.Dropout(0.25)
+        # self.dropout2 = nn.Dropout(0.5)
+        self.fc1 = nn.Linear(25088, 1024)
+        self.fc2 = nn.Linear(1024, 512)
+        self.fc3 = nn.Linear(512, 28)
 
     def forward(self, x):
         x = self.conv1(x)
-        
         x = F.relu(x)
+        
         x = self.conv2(x)
-        
         x = F.relu(x)
-        x = self.conv3(x)
         
-        x = F.relu(x)
         x = F.max_pool2d(x, 2)
-        x = self.dropout1(x)
-        
+        # x = self.dropout1(x)
+
         x = torch.flatten(x, 1)
-        x = self.fc1(x)
         
+        x = self.fc1(x)
         x = F.relu(x)
-        x = self.dropout2(x)
         
         x = self.fc2(x)
+        x = F.relu(x)
         
         x = self.fc3(x)
-        
-        x = F.relu(x)
-        x = self.fc4(x)
-        
-        x = F.relu(x)
-        x = self.fc5(x)
         
         output = F.log_softmax(x, dim=1)
         return output
@@ -88,6 +78,7 @@ def test(model, device, test_loader):
     print('\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
         test_loss, correct, len(test_loader.dataset),
         100. * correct / len(test_loader.dataset)))
+    return correct / len(test_loader.dataset)
 
 
 def train_model_save(train_loader, test_loader, epochs, path):
@@ -97,9 +88,12 @@ def train_model_save(train_loader, test_loader, epochs, path):
     optimizer = optim.Adadelta(model.parameters(), lr=1.0)
 
     scheduler = StepLR(optimizer, step_size=1, gamma=0.7)
+    best_score = 0
     for epoch in range(1, epochs + 1):
         train(model, device, train_loader, optimizer, epoch)
-        test(model, device, test_loader)
+        score = test(model, device, test_loader)
         scheduler.step()
+        if score > best_score:
+            torch.save(model.state_dict(), path)
+            best_score = score
 
-    torch.save(model.state_dict(), path)
